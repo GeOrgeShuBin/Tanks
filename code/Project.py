@@ -16,7 +16,6 @@ bright_red = (255,0,0)
 bright_green = (0,255,0)
 bright_grey= (84,84,84)
 
-
 gameDisplay = pygame.display.set_mode((display_width,display_height))
 pygame.display.set_caption("MY GAME")
 clock = pygame.time.Clock()
@@ -148,23 +147,34 @@ def initilize_tank(max_tanks , tanks_list):
 		tank_y = random.randrange(0 , display_height - tank_height)
 		tanks_list.append(Tank(tank_x , tank_y))
 
-def health_dodged(count):
-	font = pygame.font.SysFont(None,25)
-	text = font.render("Health_Point:" + str(count) , True , black )
-	gameDisplay.blit(text,(display_width - 550,0))
+def number_of_shell(norm_shell , gold_shell , health):
+	"""
+	Create a counter of player's heals, good and norm shells
+		
+	Parametres:
+	-----------
+		
+	norm_shell: int
+		Numbers of player's norm shells
+	gold_shell: int
+		Numbers of player's gold shells
+	health: int
+		Numbers of player's health_point
+	"""
 
-def things_dodged(count):
-	size = 25
-	font = pygame.font.SysFont(None,size)
-	text = font.render("Your assessment for exam:" + str(count) , True , red )
-	gameDisplay.blit(text,(0,display_height - size ))
-    
+	font = pygame.font.SysFont(None, 50)
+	health_point = font.render("Your health point:" + str(health) , True , red)
+	norm_shells = font.render("" + str(norm_shell) , True ,black )
+	gold_shells = font.render("" + str(gold_shell) , True ,gold )
+	gameDisplay.blit(norm_shells,(50 ,display_height - 50))
+	gameDisplay.blit(gold_shells,(200 ,display_height - 50))
+	gameDisplay.blit(health_point,(400 ,display_height - 50 ))
+
 def things(thingx ,thingy , thingw , thingh , color) :
 	pygame.draw.rect(gameDisplay, color , [thingx ,thingy , thingw , thingh]) 
 
 def shalls(shallx , shally , radius , color): 
 	pygame.draw.circle(gameDisplay,color , (shallx,shally) , radius)
-
 	
 def player(image ,x,y):
 	"""
@@ -232,8 +242,8 @@ def draw_angar():
 							image = pygame.transform.scale(image , (player_width, player_height)) 
 							angar = False
 							game_loop(image)		
-
-						if  coord_x[1] < click_mouse[0]  < coord_x[1] + size_x and starty < click_mouse[1]  < starty + size_y : 
+ 
+						if  coord_x[1] <  click_mouse[0]  < coord_x[1] + size_x and starty < click_mouse[1]  < starty + size_y : 
 							image = pygame.image.load("Player_2.png")
 							image = pygame.transform.scale(image ,(player_width, player_height)) 
 							angar = False
@@ -334,6 +344,8 @@ def game_loop(image):
 	
 	dodged = 0
 	health = 100
+	norm_shells = 1000
+	gold_shells = 10
 	
 	tanks_list = []
 	shalls_list = []
@@ -371,12 +383,18 @@ def game_loop(image):
 					paused()			
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE:		
+					norm_shells -= 1
 					shot(radius , black)
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_LSHIFT and gold_catridge != 0:		
+					shot(gold_radius , gold)
+					gold_catridge -= 1
+					gold_shells -= 1	
+			"""if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == 1 and gold_catridge != 0:			
 					shot(gold_radius , gold)
 					gold_catridge -= 1
-
+					gold_shells -= 1 """
 
 		shall_startx = x + player_width 
 		shall_starty = y + player_height/2
@@ -409,9 +427,7 @@ def game_loop(image):
 		
 		player(image ,x,y)
 		
-		things_dodged(dodged)
-		
-		health_dodged(health)
+		number_of_shell(norm_shells , gold_shells , health)
 		
 		gameDisplay.blit(aimImg,pygame.mouse.get_pos())
 	
