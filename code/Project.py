@@ -2,7 +2,10 @@ import pygame
 from pygame import mixer
 import random 
 import time 
+from classes import Tank, Shell
 pygame.init()
+
+FPS = 60
 
 display_width = 1324  
 display_height = 600
@@ -16,6 +19,8 @@ grey = (133,133,133)
 bright_red = (255,0,0)
 bright_green = (0,255,0)
 bright_grey= (84,84,84)
+enemy_width = 50
+enemy_height = 30
 
 recharge = 0
 
@@ -48,120 +53,6 @@ bonus_width = 200
 max_tanks = 5
 
 pause = False
-
-class Tank():
-	"""
-	Create tanks
-	
-	Parametres:
-	----------
-	x : int
-		X-coordinate of the tank
-	y : int
-		Y-coordinate of the tank
-	health:int
-		initial tank health
-	speed : int
-		tank speed
-	image: picture
-		tank image 
-	"""
-	def __init__(self , x , y ):
-		self.x = x
-		self.y = y
-		self.distance = random.randint(display_width/3 , display_width - tank_width)
-		self.health = 50
-		self.max_health = 99
-		self.speed = 1
-		self.img_num = random.randint(0,0)
-		self.image_filename = "tank_rotate2" + str(self.img_num) + ".png"
-		self.image = pygame.image.load(self.image_filename).convert_alpha()
-		self.image = pygame.transform.scale(self.image , (tank_width, tank_height))
-		self.shell_x = x
-		self.shell_y = y + tank_height/2
-		self.shell_radius = 5
-		self.shell_speed = 15
-		self.player_health = 100
-	
-
-		
-	def movement_tank(self):
-		"""
-		Defines the rule of the tank movement
-		
-		Parametres:
-		----------
-		"""
-		self.x -= self.speed 
-		if self.x < self.distance : 
-			self.speed = 0
-	def tank_shot(self):
-		"""
-		Draw a tank's shell 
-		
-		Parametres
-		----------
-		"""
-		if self.x < display_width - tank_width:
-			pygame.draw.circle(gameDisplay ,(0,0,0) , (self.shell_x , self.shell_y) , self.shell_radius )	
-			
-	def movement_shell(self):
-		"""
-		Defines the rule of the shell movement
-		
-		Parametres:
-		----------
-		
-		"""
-		self.shell_x -= self.shell_speed
-		if self.shell_x < 0:
-			self.shell_x = int(self.x)
-			
-	def draw_tank(self):
-		"""
-		Draws the tank 
-		
-		Parametres:
-		
-		----------
-		image: picture
-			preset image 
-		x : int
-			X-coordinate of the tank
-		y : int
-			Y-coordinate of the tank
-		"""
-		gameDisplay.blit(self.image , (self.x , self.y))		
-	
-	def draw_health(self):
-		"""
-		Draws a rectangle in proportion to our health
-		"""
-		pygame.draw.rect(gameDisplay , red , [self.x , self.y - 10, int(self.health) , 10])
-
-	def hit(self, damage):
-		"""
-		Defines the rule of the tank health
-		
-		Parametres:
-		
-		----------
-		
-		damage: int
-			number of health points occupied
-		"""
-		self.health -= damage
-	
-	def crashed_tank(self):
-		"""
-		Removes a tank with zero health
-		
-		Parametres:
-		-----------
-		""" 
-		self.speed = 0
-		gameDisplay.blit(self.image , (self.x , self.y))	
-
 					
 def initilize_tank(max_tanks , tanks_list):
 	"""
@@ -317,31 +208,22 @@ def draw_angar():
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == 1 :
 						if  coord_x[0] < click_mouse[0] < coord_x[0] + size_x and starty < click_mouse[1]  < starty + size_y : 
-							time = 5
-							health = 200
-							image = pygame.image.load("Player_1.png")
-							image = pygame.transform.scale(image , (player_width, player_height)) 
-							player_speed = 2
+							player = Tank(player_width // 2, display_height // 2, player_width, player_height,
+							"Player_1.png", 1, 200, 2, 20, 1, gameDisplay)
 							angar = False
-							game_loop(image , time , health , player_speed)		
+							game_loop(player)		
 
 						if  coord_x[1] < click_mouse[0]  < coord_x[1] + size_x and starty < click_mouse[1]  < starty + size_y :
-							time = 7 
-							health = 175
-							player_speed = 3
-							image = pygame.image.load("Player_2.png")
-							image = pygame.transform.scale(image ,(player_width, player_height)) 
+							player = Tank(player_width // 2, display_height // 2, player_width, player_height,
+							"Player_2.png", 0.7, 175, 4, 30, 1, gameDisplay)
 							angar = False
-							game_loop(image , time , health , player_speed)		
+							game_loop(player)		
 
 						if  coord_x[2] < click_mouse[0]  < coord_x[2] + size_x and starty < click_mouse[1]  < starty + size_y : 
-							time = 10
-							health = 100
-							player_speed = 4
-							image = pygame.image.load("Player_3.png")
-							image = pygame.transform.scale(image , (player_width, player_height)) 
+							player = Tank(player_width // 2, display_height // 2, player_width, player_height,
+							"Player_3.png", 0.5, 100, 7, 40, 1, gameDisplay)
 							angar = False
-							game_loop(image , time , health , player_speed)		
+							game_loop(player)		
 
 def button(msg,x,y,w,h,ic,ac,action = None):
 	"""
@@ -432,63 +314,26 @@ def paused():
 		pygame.display.update()
 		clock.tick(50)					
 
-def game_loop(image , time , health , player_speed):
-	
-	global recharge
-	
-	x = tank_width * 0.01
-	y = ((display_height) * 0.5)	
-			
-	shell_startx = x + player_width
-	shell_starty = (display_height * 0.5)
-	shell_speed = 15
-	radius = 3
-	gold_radius = 10 
-	shelly_change = 0
+def game_loop(player):
 		
-	bonus_startx = random.randrange(0, display_width)
-	bonus_starty = -600
-	bonus_speed = 1
-	bonus_width = 75
-	bonus_height = 150
-	
-	level = 1 
-	score = 0
-	norm_shells = 1000
-	gold_shells = 100
-	
-	tanks_list = []
-	shells_list = []
-	
-	gold_catridge = 100
-	
-	
-	
-	norm_damage = 5
-	gold_damage = 25
-	
 	gameExit = False
-
 	global pause
-	
-	initilize_tank(max_tanks , tanks_list)
-		
+	enemies = []
+	shells = []
 	while not gameExit:
+		dt = clock.tick(60) / 10
+
 		click_mouse = pygame.mouse.get_pos()
 		gameDisplay.fill(white)
 
-		def shot(radius , color):
-			shells_list.append([int(shall_startx),int(shall_starty),radius,color])
-			shoot_gun_sound.play()
-
 		if pygame.key.get_pressed()[pygame.K_d]:
-			x += player_speed		
+			player.x += player.velo * dt
 		if pygame.key.get_pressed()[pygame.K_a]:
-			x -= player_speed			
+			player.x -= player.velo * dt
 		if pygame.key.get_pressed()[pygame.K_s]:
-			y += player_speed		
+			player.y += player.velo * dt
 		if pygame.key.get_pressed()[pygame.K_w]:
-			y -= player_speed 			
+			player.y -= player.velo * dt
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -498,85 +343,58 @@ def game_loop(image , time , health , player_speed):
 				if event.key == pygame.K_ESCAPE:
 					pause = True
 					paused()			
-				if event.key == pygame.K_SPACE and recharge < 0:							
-					norm_shells -= 1
-					shot(radius , black)
-					recharge = 100
-				if event.key == pygame.K_LSHIFT and gold_catridge != 0 and recharge < 0:		
-					shot(gold_radius , gold)
-					recharge = 100
-					gold_catridge -= 1
-					gold_shells -= 1	
+				if event.key == pygame.K_SPACE:
+					shells = player.shot("armour-piercing", shells)	
+					print("shooting")				
+				if event.key == pygame.K_LSHIFT:
+					shells = player.shot("cumulative", shells)	
+			"""	
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == 1 :
-					if  bonus_startx < click_mouse[0] < bonus_startx + bonus_width and bonus_starty < click_mouse[1] < bonus_starty + bonus_height : 
-						health += 5
-						bonus_starty = -display_height
-						bonus_startx = random.randint(0 , display_width - bonus_width)
-						
-			
-
-
-		for i in tanks_list:
-			i.movement_tank()			
-			if i.health <= 0 :				
-				i.crashed_tank()
-			else:
-				i.movement_shell()
-				i.draw_tank()
-				i.tank_shot()
-				i.draw_health()
+					if bonuses != []:
+						for i in range(len(bonuses)):
+							bonus = bonuses[i]
+							if (click_mouse[0] < bonus.x + bonus.width and click_mouse[0] > bonus.x
+								and click_mouse[1] < bonus.y and click_mouse[1] > bonus.y + bonus.height):
+								player.use_bonus(bonus.kind)
+			"""
 				
-		i = -1
-		k = -1
-		for shell in shells_list:
-			i += 1
-			shells(shell[0], shell[1], shell[2], shell[3])
-			shell[0] += shell_speed
-			if shell[0] > display_width +radius:
-				shells_list.pop(i)
-				shells_list = shells_list	
-			for tank in tanks_list:			
-				if tank.x < shell[0] < tank.x + tank_width and tank.y < shell[1] < tank.y + tank_height :
-					k = i
-					score += 5
-					tank.hit(gold_damage if shell[3] == gold else norm_damage)
-					shells_list.pop(k)
-					shells_list = shells_list
-
-					
-					
-		if bonus_starty > display_height:
-			bonus_starty =  - display_height
-			bonus_startx = random.randrange(0,display_width)
-								
-		if x < 0 :
-			x = 0	
-		if y < 0:
-			y = 0
-		if y > display_height - tank_height:
-			y = display_height - tank_height
-		if x > display_width - player_width :
-			x =  display_width - player_width 		
-
-		player(image ,x,y)
+		if enemies != []:	
+			for i in range(len(enemies)):
+				tank = enemies[i]
+				shells = tank.shot("armour-piercing", shells)
+				tank.move(dt)
+				shells = tank.check_hits(shells)
+				tank.draw()
+			i = 0	
+			while i < len(enemies) - 1:
+				if enemies[i].destroy:
+					enemies.pop(i)
+				else:
+					i += 1
+		if shells != []:
+			for i in range(len(shells)):
+				shells[i].draw()
+				shells[i].move(dt)
+			i = 0
+			while i < len(shells):
+				if shells[i].destroy:
+					shells.pop(i)
+				else:
+					i += 1
+		#if random.randint(0, 100) > 95:
+			#bonuses.append(Bonus(x, ""))
 		
-		number_of_shell(norm_shells , gold_shells , health , score , level)
-		
-		gameDisplay.blit(aimImg,pygame.mouse.get_pos())
-
-		shall_startx = x + player_width 
-		shall_starty = y + player_height/2
-		
-		recharge -= time
-						
-		bonus(bonus_startx , bonus_starty , bonus_width , bonus_height )
-		bonus_starty += bonus_speed
-		
+		if random.randint(0, 100) > 99:
+			enemies.append(Tank(display_width, random.randint(0, display_height), 100, 50, "tank_rotate20.png", 
+								2, 100, 1, 20, -1, gameDisplay)) 
+		player.draw()
+		player.charge()
+		if shells != []:
+			shells = player.check_hits(shells)
 		pygame.display.update()
 		clock.tick(50)
 		
 game_intro()
-game_loop() 	
 pygame.quit()
 quit()
