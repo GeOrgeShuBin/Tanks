@@ -2,13 +2,17 @@ import pygame
 from pygame import mixer
 import random 
 import time 
-from classes import Tank, Shell
+from classes import Tank, Shell, Bonus
+import sys
 pygame.init()
 
 FPS = 60
 
 display_width = 1324  
 display_height = 600
+
+numbers_of_tanks = 0
+level = 1
 
 black = (0,0,0)       
 white = (255,255,255)
@@ -53,27 +57,8 @@ bonus_width = 200
 max_tanks = 5
 
 pause = False
-					
-def initilize_tank(max_tanks , tanks_list):
-	"""
-	Define start coord of tanks
-	Parametres:
-	
-	----------
-	
-	max_tanks: int
-		maximum number of tanks at this level
-	
-	tanks_list: list
-		list of size max_tanks, which adds the created tanks 
-	"""	
-	
-	for i in range(max_tanks):
-		tank_x = random.randrange(  1024 , 2 *display_width)
-		tank_y = random.randrange(0 , display_height - tank_height)
-		tanks_list.append(Tank(tank_x , tank_y))
-
-def number_of_shell(norm_shell , gold_shell , health , score , level):
+			
+def number_of_shell(norm_shell , gold_shell , health , level):
 	"""
 	Create a counter of player's heals, good and norm shells
 		
@@ -87,57 +72,18 @@ def number_of_shell(norm_shell , gold_shell , health , score , level):
 	health: int
 		Numbers of player's health_point
 	"""
-
+	
 	font = pygame.font.SysFont(None, 50)
 	health_point = font.render("Your health point:" + str(health) , True , red)
 	norm_shells = font.render("" + str(norm_shell) , True ,black )
 	gold_shells = font.render("" + str(gold_shell) , True ,gold )
-	score = font.render("Score:" + str(score) , True , black )  
+	#score = font.render("Score:" + str(score) , True , black )  
 	level = font.render("LEVEL:" + str(level) , True , black ) 
 	gameDisplay.blit(norm_shells,(50 ,display_height - 50))
 	gameDisplay.blit(gold_shells,(200 ,display_height - 50))
 	gameDisplay.blit(health_point,(400 ,display_height - 50 ))
-	gameDisplay.blit(score,(600 , 0))
+	#gameDisplay.blit(score,(600 , 0))
 	gameDisplay.blit(level , (100 , 0) ) 
-	
-def bonus(bonus_x , bonus_y , bonus_width , bonus_height):
-	"""
-	Create a bonus 
-	
-	Parametres:
-	----------
-	img_num : int
-		Number of image name
-	
-	"""
-	img_num = random.randint(0,0)
-	image_filename = "bonus1" + str(img_num) + ".png"
-	image = pygame.image.load(image_filename).convert_alpha()
-	image = pygame.transform.scale(image , (bonus_width, bonus_height))	
-	gameDisplay.blit(image,(bonus_x , bonus_y))
-
-def shells(shellx , shelly , radius , color): 
-	"""
-	Create players shell
-	"""
-	pygame.draw.circle(gameDisplay,color , (shellx,shelly) , radius)
-	
-def player(image ,x,y):
-	"""
-	Draw a player at game_Display
-	
-	Parametrs:
-	---------
-	
-	image: picture
-		player image
-	"""
-	global recharge
-	gameDisplay.blit(image,(x,y))
-	if recharge > 0 :		
-		pygame.draw.rect(gameDisplay , red , [ x , y - 10, int(recharge) , 10])
-
-	
 	
 def text_objects(text,font):
 	textSurface = font.render(text,True,black)
@@ -153,11 +99,6 @@ def message_display(text):
 	time.sleep(4)
 	game_loop()
 	
-def crash():
-	"""
-	This function writes a message about the loss
-	"""
-	message_display("You lose")
 
 def draw_angar():	
 	"""
@@ -203,27 +144,28 @@ def draw_angar():
 		click_mouse = pygame.mouse.get_pos()
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
-				pygame.quit()
-				quit()			
+				sys.exit()			
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == 1 :
 						if  coord_x[0] < click_mouse[0] < coord_x[0] + size_x and starty < click_mouse[1]  < starty + size_y : 
 							player = Tank(player_width // 2, display_height // 2, player_width, player_height,
-							"Player_1.png", 1, 200, 2, 20, 1, gameDisplay)
+							"Player_1.png", 0.7, 200, 20, 200, 1, gameDisplay)
 							angar = False
-							game_loop(player)		
 
 						if  coord_x[1] < click_mouse[0]  < coord_x[1] + size_x and starty < click_mouse[1]  < starty + size_y :
 							player = Tank(player_width // 2, display_height // 2, player_width, player_height,
-							"Player_2.png", 0.7, 175, 4, 30, 1, gameDisplay)
+							"Player_2.png", 0.55, 175, 40, 300, 1, gameDisplay)
 							angar = False
-							game_loop(player)		
 
 						if  coord_x[2] < click_mouse[0]  < coord_x[2] + size_x and starty < click_mouse[1]  < starty + size_y : 
 							player = Tank(player_width // 2, display_height // 2, player_width, player_height,
-							"Player_3.png", 0.5, 100, 7, 40, 1, gameDisplay)
+							"Player_3.png", 0.4, 100, 70, 400, 1, gameDisplay)
 							angar = False
-							game_loop(player)		
+						game_loop(player)
+						sys.exit()
+						
+						
+		
 
 def button(msg,x,y,w,h,ic,ac,action = None):
 	"""
@@ -316,12 +258,14 @@ def paused():
 
 def game_loop(player):
 		
-	gameExit = False
+	game_over = False
 	global pause
 	enemies = []
 	shells = []
-	while not gameExit:
-		dt = clock.tick(60) / 10
+	bonuses = []
+	while not game_over:
+		print(game_over)
+		dt = clock.tick(60) / 100.0
 
 		click_mouse = pygame.mouse.get_pos()
 		gameDisplay.fill(white)
@@ -344,55 +288,85 @@ def game_loop(player):
 					pause = True
 					paused()			
 				if event.key == pygame.K_SPACE:
-					shells = player.shot("armour-piercing", shells)	
-					print("shooting")				
+					new_shell = player.shot("armour-piercing")
+					if new_shell != None:
+						shells.append(new_shell)
 				if event.key == pygame.K_LSHIFT:
-					shells = player.shot("cumulative", shells)	
-			"""	
+					new_shell = player.shot("cumulative")
+					if new_shell != None:
+						shells.append(new_shell)
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == 1 :
 					if bonuses != []:
-						for i in range(len(bonuses)):
-							bonus = bonuses[i]
-							if (click_mouse[0] < bonus.x + bonus.width and click_mouse[0] > bonus.x
-								and click_mouse[1] < bonus.y and click_mouse[1] > bonus.y + bonus.height):
-								player.use_bonus(bonus.kind)
-			"""
-				
-		if enemies != []:	
-			for i in range(len(enemies)):
-				tank = enemies[i]
-				shells = tank.shot("armour-piercing", shells)
-				tank.move(dt)
-				shells = tank.check_hits(shells)
-				tank.draw()
-			i = 0	
-			while i < len(enemies) - 1:
-				if enemies[i].destroy:
-					enemies.pop(i)
-				else:
-					i += 1
+						i = 0
+						while i < len(bonuses):
+							player.catch(bonuses[i], click_mouse)
+							i += 1
+
+
+
 		if shells != []:
 			for i in range(len(shells)):
 				shells[i].draw()
 				shells[i].move(dt)
 			i = 0
 			while i < len(shells):
-				if shells[i].destroy:
+				if shells[i].is_destroyed:
 					shells.pop(i)
 				else:
 					i += 1
-		#if random.randint(0, 100) > 95:
-			#bonuses.append(Bonus(x, ""))
-		
-		if random.randint(0, 100) > 99:
-			enemies.append(Tank(display_width, random.randint(0, display_height), 100, 50, "tank_rotate20.png", 
-								2, 100, 1, 20, -1, gameDisplay)) 
-		player.draw()
-		player.charge()
+
+		if enemies != []:	
+			for i in range(len(enemies)):
+				tank = enemies[i]
+				shells = tank.check_hits(shells)
+				new_shell = tank.shot("armour-piercing")
+				if new_shell != None:
+					shells.append(new_shell)
+				tank.move(dt)
+				tank.draw()
+				
+			i = 0	
+			while i < len(enemies) :
+				if enemies[i].is_destroyed:
+					enemies.pop(i)
+				else:
+					i += 1
+	
 		if shells != []:
 			shells = player.check_hits(shells)
+		
+		
+		if random.randint(0, 100) > 98:
+			global numbers_of_tanks
+			global level
+			numbers_of_tanks += 1
+			if numbers_of_tanks <= level*5:
+				enemies.append(Tank(display_width, random.randint(25, display_height - 25), 100, 50, "tank_rotate20.png", 
+									0.9, 100, 10, 200, -1, gameDisplay)) 
+			if len(enemies) == 0:
+				level += 1
+				numbers_of_tanks = 0
+
+		if random.randint(0, 1000) > 991:
+			bonuses.append(Bonus(random.randint(100, gameDisplay.get_width()), 0, 60, 60, 3, random.randint(1, 3), "bonus10.png", gameDisplay))
+		
+		i = 0		
+		if bonuses != []:
+			while i < len(bonuses) :
+				if bonuses[i].is_lost:
+					bonuses.pop(i)
+				else:
+					bonuses[i].move()
+					bonuses[i].draw()
+					i += 1
+		player.draw()
+		player.charge()
+		number_of_shell(player.APshells, player.Gshells, player.health , level)
 		pygame.display.update()
+		if player.health <= 0:
+			game_over = True
+			print(game_over)
 		clock.tick(50)
 		
 game_intro()
