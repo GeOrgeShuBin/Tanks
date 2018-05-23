@@ -23,6 +23,7 @@ grey = (133,133,133)
 bright_red = (255,0,0)
 bright_green = (0,255,0)
 bright_grey= (84,84,84)
+
 enemy_width = 50
 enemy_height = 30
 
@@ -30,10 +31,8 @@ recharge = 0
 
 gameDisplay = pygame.display.set_mode((display_width,display_height))
 pygame.display.set_caption("MY GAME")
+
 clock = pygame.time.Clock()
-  
-aimImg = pygame.image.load('aim1.png').convert()
-aimImg.set_colorkey(white)
 
 backgroundImg = pygame.image.load('fon.jpg').convert()
 backgroundImg = pygame.transform.scale(backgroundImg , (display_width,display_height))
@@ -43,22 +42,14 @@ angarImg = pygame.transform.scale(angarImg , (display_width,display_height))
 
 pygame.mixer.init(frequency=44100, size=-16, channels=1, buffer=512)
 pygame.mixer.init()
-shoot_gun_sound = pygame.mixer.Sound('Shot.ogg')
-
-tank_height = 50
-tank_width = 100
+shot_sound = pygame.mixer.Sound('Shot.ogg')
 
 player_height = 50
 player_width = 100
 
-bonus_height = 100
-bonus_width = 200
-
-max_tanks = 5
-
 pause = False
 			
-def number_of_shell(norm_shell , gold_shell , health , level):
+def draw_interface(norm_shell , gold_shell , health , level):
 	"""
 	Create a counter of player's heals, good and norm shells
 		
@@ -76,13 +67,11 @@ def number_of_shell(norm_shell , gold_shell , health , level):
 	font = pygame.font.SysFont(None, 50)
 	health_point = font.render("Your health point:" + str(health) , True , red)
 	norm_shells = font.render("" + str(norm_shell) , True ,black )
-	gold_shells = font.render("" + str(gold_shell) , True ,gold )
-	#score = font.render("Score:" + str(score) , True , black )  
+	gold_shells = font.render("" + str(gold_shell) , True ,gold )  
 	level = font.render("LEVEL:" + str(level) , True , black ) 
 	gameDisplay.blit(norm_shells,(50 ,display_height - 50))
 	gameDisplay.blit(gold_shells,(200 ,display_height - 50))
 	gameDisplay.blit(health_point,(400 ,display_height - 50 ))
-	#gameDisplay.blit(score,(600 , 0))
 	gameDisplay.blit(level , (100 , 0) ) 
 	
 def text_objects(text,font):
@@ -90,6 +79,10 @@ def text_objects(text,font):
 	return textSurface , textSurface.get_rect()
 
 def message_display(text):
+	"""
+	Draws text on the game_Display
+	
+	"""
 	largeText = pygame.font.Font("11601.ttf" ,110)
 	TextSurf , TextRect = text_objects(text,largeText)
 	TextRect.center = ((display_width/2) , (display_height/2))
@@ -97,7 +90,6 @@ def message_display(text):
 	
 	pygame.display.update()
 	time.sleep(4)
-	game_loop()
 	
 
 def draw_angar():	
@@ -119,6 +111,7 @@ def draw_angar():
 	
 	
 	"""
+	global shot_sound
 	gameDisplay.blit(angarImg , [0,0])
 	number_of_players = 3 
 	startx = 150
@@ -149,20 +142,21 @@ def draw_angar():
 				if event.button == 1 :
 						if  coord_x[0] < click_mouse[0] < coord_x[0] + size_x and starty < click_mouse[1]  < starty + size_y : 
 							player = Tank(player_width // 2, display_height // 2, player_width, player_height,
-							"Player_1.png", 0.7, 200, 20, 200, 1, gameDisplay)
+							"Player_1.png", 0.7, 200, 20, 200, 1, gameDisplay, shot_sound)
 							angar = False
 
 						if  coord_x[1] < click_mouse[0]  < coord_x[1] + size_x and starty < click_mouse[1]  < starty + size_y :
 							player = Tank(player_width // 2, display_height // 2, player_width, player_height,
-							"Player_2.png", 0.55, 175, 40, 300, 1, gameDisplay)
+							"Player_2.png", 0.55, 175, 40, 300, 1, gameDisplay , shot_sound)
 							angar = False
 
 						if  coord_x[2] < click_mouse[0]  < coord_x[2] + size_x and starty < click_mouse[1]  < starty + size_y : 
 							player = Tank(player_width // 2, display_height // 2, player_width, player_height,
-							"Player_3.png", 0.4, 100, 70, 400, 1, gameDisplay)
+							"Player_3.png", 0.4, 100, 70, 400, 1, gameDisplay , shot_sound)
 							angar = False
+
 						game_loop(player)
-						sys.exit()
+
 						
 						
 		
@@ -228,7 +222,7 @@ def game_intro():
 		gameDisplay.blit(TextSurf , TextRect)
 		 
 		button("BEGIN THE GAME",25,400,300,50,green,bright_green, "play")
-		button("ENTER THE GAME",25,500,300,50,red,bright_red,"quit")
+		button("QUIT THE GAME",25,500,300,50,red,bright_red,"quit")
 						
 		pygame.display.update()
 		clock.tick(50)
@@ -264,20 +258,23 @@ def game_loop(player):
 	shells = []
 	bonuses = []
 	while not game_over:
-		print(game_over)
 		dt = clock.tick(60) / 100.0
 
 		click_mouse = pygame.mouse.get_pos()
 		gameDisplay.fill(white)
 
 		if pygame.key.get_pressed()[pygame.K_d]:
-			player.x += player.velo * dt
+			if player.x + player.width/2  <= display_width/3 :
+				player.x += player.velo * dt
 		if pygame.key.get_pressed()[pygame.K_a]:
-			player.x -= player.velo * dt
+			if player.x - player.width/2  >= 0 :
+				player.x -= player.velo * dt
 		if pygame.key.get_pressed()[pygame.K_s]:
-			player.y += player.velo * dt
+			if player.y + player.height/2  <= display_height :	
+				player.y += player.velo * dt
 		if pygame.key.get_pressed()[pygame.K_w]:
-			player.y -= player.velo * dt
+			if player.y - player.height/2  >= 0 :		
+				player.y -= player.velo * dt
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -341,15 +338,15 @@ def game_loop(player):
 			global numbers_of_tanks
 			global level
 			numbers_of_tanks += 1
-			if numbers_of_tanks <= level*5:
+			if numbers_of_tanks <= level*3:
 				enemies.append(Tank(display_width, random.randint(25, display_height - 25), 100, 50, "tank_rotate20.png", 
-									0.9, 100, 10, 200, -1, gameDisplay)) 
+									0.9, 100, 10, 200, -1, gameDisplay , None)) 
 			if len(enemies) == 0:
 				level += 1
 				numbers_of_tanks = 0
 
-		if random.randint(0, 1000) > 991:
-			bonuses.append(Bonus(random.randint(100, gameDisplay.get_width()), 0, 60, 60, 3, random.randint(1, 3), "bonus10.png", gameDisplay))
+		if random.randint(0, 1000) > 990:
+			bonuses.append(Bonus(random.randint(100, gameDisplay.get_width()), 0, 60, 60, 10, random.randint(1, 3), "bonus10.png", gameDisplay))
 		
 		i = 0		
 		if bonuses != []:
@@ -362,11 +359,14 @@ def game_loop(player):
 					i += 1
 		player.draw()
 		player.charge()
-		number_of_shell(player.APshells, player.Gshells, player.health , level)
+		draw_interface(player.APshells, player.Gshells, player.health , level)
 		pygame.display.update()
 		if player.health <= 0:
+			message_display("GAME OVER")
 			game_over = True
-			print(game_over)
+			
+			
+			
 		clock.tick(50)
 		
 game_intro()

@@ -1,6 +1,7 @@
 import pygame
+import random
 class Tank:
-	def __init__(self, x, y, width, height, image, recharge_time, max_health, velo, shell_velocity, side, gameDisplay):
+	def __init__(self, x, y, width, height, image, recharge_time, max_health, velo, shell_velocity, side, gameDisplay ,shot_sound):
 		self.x = x
 		self.y = y
 		self.width = width
@@ -18,7 +19,9 @@ class Tank:
 		self.gameDisplay = gameDisplay
 		self.APshells = 1000
 		self.Gshells = 20
-	
+		self.tank_distance = random.randint(self.gameDisplay.get_width()/3 , self.gameDisplay.get_width() - self.width)
+		self.shot_sound = shot_sound
+		
 	def shot(self, shell_type):
 		if self.recharge < 0:
 			self.recharge = self.recharge_time
@@ -26,11 +29,14 @@ class Tank:
 				self.APshells -= 1
 			elif self.APshells == 0:
 				return None
-			if shell_type == "cumulative" and self.Gshells != 0:
+			elif shell_type == "cumulative" and self.Gshells != 0:
 				self.Gshells -= 1
 			elif self.Gshells == 0:
 				return None
+			if self.shot_sound != None:
+				self.shot_sound.play()
 			return Shell(self.x + self.width // 2 * self.side, self.y, self.shell_velocity * self.side, shell_type, self.gameDisplay)
+
 		else:
 			self.recharge -= 1
 			
@@ -39,7 +45,8 @@ class Tank:
 		self.recharge -= 1
 			
 	def move(self, dt):
-		self.x += self.velo * dt
+		if self.x  > self.tank_distance:
+			self.x += self.velo * dt
 		if self.x + self.width < 0:
 			self.is_destroyed = True
 	
@@ -57,7 +64,7 @@ class Tank:
 		i = 0
 		while i < len(shells):
 			shell = shells[i]
-			if shell.x < self.x + self.width / 2 and shell.x > self.x - self.width / 2 and shell.y > self.y - self.height / 2 and shell.y < self.y + self.height / 2:
+			if   self.x - self.width / 2 < shell.x < self.x + self.width / 2  and self.y - self.height / 2 < shell.y < self.y + self.height / 2:
 				self.hit(shell)
 				shells.pop(i)
 				print("ypoH")
@@ -66,7 +73,7 @@ class Tank:
 		return shells
 		
 	def catch(self, bonus, mouse_click):
-		if mouse_click[0] < bonus.x + bonus.width / 2 and mouse_click[0] > bonus.x - bonus.width / 2 and mouse_click[1] > bonus.y - bonus.height / 2 and mouse_click[1] < bonus.y + bonus.height / 2:
+		if  bonus.x - bonus.width / 2 < mouse_click[0] < bonus.x + bonus.width / 2  and bonus.y - bonus.height / 2 < mouse_click[1]  < bonus.y + bonus.height / 2:
 			if bonus.type_c == 1:
 				self.health += 50
 				if self.health > self.max_health:
@@ -85,6 +92,7 @@ class Shell:
 		self.y = y
 		self.gameDisplay = gameDisplay
 		self.is_destroyed = False
+		self.radius = 5
 		if kind == "armour-piercing":
 			self.damage = 10
 			self.velo = velo
@@ -100,7 +108,7 @@ class Shell:
 			self.is_destroyed = True
 	
 	def draw(self):
-		pygame.draw.circle(self.gameDisplay, self.color, (int(self.x), int(self.y)), 3)
+		pygame.draw.circle(self.gameDisplay, self.color, (int(self.x), int(self.y)), self.radius)
 		
 	
 		
@@ -124,6 +132,10 @@ class Bonus:
 	
 	def draw(self):
 		self.gameDisplay.blit(self.image, (int(self.x - self.width / 2), int(self.y - self.height / 2)))
+		
+		
+		
+		
 		
 		
 		
